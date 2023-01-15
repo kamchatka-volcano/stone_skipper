@@ -14,7 +14,7 @@ enum class TaskLaunchMode {
 template<TaskLaunchMode>
 struct TaskProcessor {
     explicit TaskProcessor(Task);
-    void operator()(const asyncgi::RouteParameters<>&, const asyncgi::Request&, asyncgi::Response&);
+    void operator()(const asyncgi::RouteParameters<>&, const asyncgi::Request&, asyncgi::Response&) const;
 
 private:
     Task task_;

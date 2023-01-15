@@ -1,4 +1,6 @@
 #pragma once
+#include "path_utils.h"
+#include "paths.h"
 #include <figcone/config.h>
 #include <sfun/string_utils.h>
 #include <filesystem>
@@ -47,7 +49,7 @@ struct TaskConfig : figcone::Config {
     FIGCONE_PARAM(route, std::string).ensure<StartsWithSlash>();
     FIGCONE_PARAM(command, std::string)();
     FIGCONE_PARAM(process, std::string)();
-    FIGCONE_PARAM(workingDir, std::filesystem::path);
+    FIGCONE_PARAM(workingDir, std::filesystem::path)(homePath());
 };
 
 struct Config : figcone::Config {

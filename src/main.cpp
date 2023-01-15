@@ -1,18 +1,14 @@
+#include "commandline.h"
 #include "config.h"
-#include "processlauncher.h"
 #include "task.h"
 #include "taskprocessor.h"
 #include <asyncgi/asyncgi.h>
 #include <cmdlime/commandlinereader.h>
 #include <figcone/configreader.h>
+#include <sfun/functional.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <filesystem>
-#include <string>
-
-struct CommandLine : cmdlime::Config {
-    CMDLIME_PARAM(log, cmdlime::optional<std::filesystem::path>);
-    CMDLIME_PARAM(config, std::filesystem::path);
-};
 
 using namespace stone_skipper;
 
@@ -22,8 +18,19 @@ int mainApp(const CommandLine& commandLine)
 
     auto configReader = figcone::ConfigReader{};
     auto config = configReader.readShoalFile<Config>(std::filesystem::canonical(commandLine.config));
+    auto app = [&]
+    {
+        if (commandLine.threads.has_value()) {
+            return asyncgi::makeApp(commandLine.threads.value());
+        }
+        else
+            return asyncgi::makeApp();
+    }();
+    if (commandLine.threads.has_value() && commandLine.threads.value() > 1) {
+        auto mtLogger = spdlog::stdout_color_mt("stone_skipper");
+        spdlog::set_default_logger(mtLogger);
+    }
 
-    auto app = asyncgi::makeApp();
     auto router = asyncgi::makeRouter();
     for (const auto& taskCfg : config.tasks) {
         const auto task = Task{taskCfg, config.shell};
@@ -35,7 +42,17 @@ int mainApp(const CommandLine& commandLine)
     router.route().set(asyncgi::http::ResponseStatus::Code_404_Not_Found, "Page not found");
 
     auto server = app->makeServer(router);
-    server->listen("/tmp/fcgi.sock");
+    std::visit(
+            sfun::overloaded{
+                    [&](const TcpHost& host)
+                    {
+                        server->listen(host.ipAddress, host.port);
+                    },
+                    [&](const UnixDomainHost& host)
+                    {
+                        server->listen(host.path);
+                    }},
+            commandLine.fcgiAddress);
 
     spdlog::info("stone_skipper has started");
     app->exec();

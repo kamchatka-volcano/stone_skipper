@@ -37,6 +37,10 @@ SealLake_Import(gsl 4.0.0
         GIT_REPOSITORY https://github.com/microsoft/GSL.git
         GIT_TAG        v4.0.0
 )
+SealLake_Import(platform_folders 4.2.0
+        GIT_REPOSITORY https://github.com/sago007/PlatformFolders.git
+        GIT_TAG        4.2.0
+)
 #SealLake_Bundle(
 #        NAME range-v3
 #        SKIP_LOAD
@@ -67,5 +71,7 @@ SealLake_Executable(
             figcone::figcone
             fmt::fmt
             Microsoft.GSL::GSL
+            sago::platform_folders
+            Threads::Threads
 )
 #SealLake_OptionalBuildSteps(tests)

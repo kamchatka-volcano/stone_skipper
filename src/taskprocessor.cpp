@@ -104,7 +104,7 @@ template<TaskLaunchMode taskLaunchMode>
 void TaskProcessor<taskLaunchMode>::operator()(
         const asyncgi::RouteParameters<>& routeParams,
         const asyncgi::Request& request,
-        asyncgi::Response& response)
+        asyncgi::Response& response) const
 {
     auto taskProcessResult = makeProcessCfg(task_.process, task_.routeParams, routeParams, request);
     auto taskProcessResultVisitor = sfun::overloaded{
