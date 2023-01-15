@@ -42,6 +42,7 @@ ProcessCfg makeProcessCfg(const TaskConfig& cfg, const std::string& shellCmd)
     else {
         result.command = cfg.process;
     }
+    result.commandParams = readParams(result.command);
     return result;
 }
 
@@ -51,7 +52,6 @@ Task::Task(const TaskConfig& cfg, const std::string& shellCmd)
     : routeRegexp{readRouteRegex(cfg.route)}
     , routeParams{readParams(cfg.route)}
     , process{makeProcessCfg(cfg, shellCmd)}
-    , commandParams{readParams(process.command)}
 {
 }
 

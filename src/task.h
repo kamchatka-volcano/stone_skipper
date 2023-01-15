@@ -15,7 +15,6 @@ struct Task {
     asyncgi::rx routeRegexp;
     std::vector<std::string> routeParams;
     ProcessCfg process;
-    std::vector<std::string> commandParams;
 };
 
 } //namespace stone_skipper

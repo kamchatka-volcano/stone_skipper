@@ -5,7 +5,6 @@
 
 namespace stone_skipper {
 struct Task;
-class ProcessLauncher;
 
 enum class TaskLaunchMode {
     WaitingForResult,
@@ -16,12 +15,6 @@ template<TaskLaunchMode>
 struct TaskProcessor {
     explicit TaskProcessor(Task);
     void operator()(const asyncgi::RouteParameters<>&, const asyncgi::Request&, asyncgi::Response&);
-
-private:
-    std::optional<ProcessCfg> makeProcessCfg(
-            const asyncgi::RouteParameters<>&,
-            const asyncgi::Request&,
-            asyncgi::Response&);
 
 private:
     Task task_;
