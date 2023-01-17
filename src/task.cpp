@@ -11,12 +11,9 @@ asyncgi::rx readRouteRegex(std::string input)
     return asyncgi::rx{std::regex_replace(input, paramRegex, "(.+)")};
 }
 
-std::string withoutBrackets(std::string str)
+std::string withoutBrackets(const std::string& str)
 {
-    str.pop_back();
-    str.pop_back();
-    str.erase(str.begin(), str.begin() + 2);
-    return str;
+    return str.substr(2, str.size() - 4);
 }
 
 std::vector<std::string> readParams(std::string input)

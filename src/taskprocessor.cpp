@@ -39,7 +39,7 @@ void processDetachedTaskLaunch(const ProcessCfg& taskProcess, asyncgi::Response&
 void processTaskLaunch(const ProcessCfg& taskProcess, asyncgi::Response& response)
 {
     spdlog::info("Launching the command '{}'", taskProcess.command);
-    auto result = launchProcess(taskProcess);
+    const auto result = launchProcess(taskProcess);
     if (!result.has_value()) {
         const auto errorMessage =
                 fmt::format("Couldn't find the executable of the command '{}' to launch it", taskProcess.command);
@@ -62,10 +62,10 @@ std::optional<std::string> paramFromRoute(
         const std::vector<std::string>& regexRouteParams,
         asyncgi::RouteParameters<> routeParams)
 {
-    auto it = std::find(regexRouteParams.begin(), regexRouteParams.end(), commandParamName);
+    const auto it = std::find(regexRouteParams.begin(), regexRouteParams.end(), commandParamName);
     if (it == regexRouteParams.end())
         return std::nullopt;
-    auto routeParamIndex = std::distance(regexRouteParams.begin(), it);
+    const auto routeParamIndex = std::distance(regexRouteParams.begin(), it);
     sfunContractCheck(routeParamIndex < sfun::ssize(routeParams.value));
     return routeParams.value.at(routeParamIndex);
 }
@@ -106,7 +106,7 @@ void TaskProcessor<taskLaunchMode>::operator()(
         const asyncgi::Request& request,
         asyncgi::Response& response) const
 {
-    auto taskProcessResult = makeProcessCfg(task_.process, task_.routeParams, routeParams, request);
+    const auto taskProcessResult = makeProcessCfg(task_.process, task_.routeParams, routeParams, request);
     auto taskProcessResultVisitor = sfun::overloaded{
             [&](const ProcessCfgParametrizationError& error)
             {
