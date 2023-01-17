@@ -5,22 +5,23 @@ find_package(Boost 1.67 REQUIRED COMPONENTS system)
 include(GNUInstallDirs)
 include(external/seal_lake)
 
-SealLake_Import(sfun 3.1.0
+SealLake_Import(sfun 3.1.1
         GIT_REPOSITORY https://github.com/kamchatka-volcano/sfun
         GIT_TAG v3.1.0
 )
+
 SealLake_Import(asyncgi 0.1.0
         GIT_REPOSITORY https://github.com/kamchatka-volcano/asyncgi
         GIT_TAG dev
 )
-SealLake_Import(cmdlime 2.3.0
+SealLake_Import(cmdlime 2.3.1
         GIT_REPOSITORY https://github.com/kamchatka-volcano/cmdlime
-        GIT_TAG v2.3.0
+        GIT_TAG v2.3.1
 )
 set(FIGCONE_USE_SHOAL ON)
-SealLake_Import(figcone 2.4.1
+SealLake_Import(figcone 2.4.2
         GIT_REPOSITORY https://github.com/kamchatka-volcano/figcone
-        GIT_TAG v2.4.1
+        GIT_TAG v2.4.2
 )
 
 SealLake_Import(fmt 9.1.0
