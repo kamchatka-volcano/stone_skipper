@@ -18,44 +18,40 @@ int mainApp(const CommandLine& commandLine)
 
     auto configReader = figcone::ConfigReader{};
     auto config = configReader.readShoalFile<Config>(std::filesystem::canonical(commandLine.config));
-    auto app = [&]
+    auto io = [&]
     {
         if (commandLine.threads.has_value()) {
-            return asyncgi::makeApp(commandLine.threads.value());
+            return asyncgi::IO{commandLine.threads.value()};
         }
         else
-            return asyncgi::makeApp();
+            return asyncgi::IO{};
     }();
     if (commandLine.threads.has_value() && commandLine.threads.value() > 1) {
         auto mtLogger = spdlog::stdout_color_mt("stone_skipper");
         spdlog::set_default_logger(mtLogger);
     }
-
-    auto router = asyncgi::makeRouter();
+    auto router = asyncgi::Router{};
     for (const auto& taskCfg : config.tasks) {
         const auto task = Task{taskCfg, config.shell};
-        router.route(task.routeRegexp, RequestMethod::GET)
-                .process<TaskProcessor<TaskLaunchMode::WaitingForResult>>(task);
-        router.route(task.routeRegexp, RequestMethod::POST) //
-                .process<TaskProcessor<TaskLaunchMode::Detached>>(task);
+        router.route(task.routeRegexp, RequestMethod::Get).process<TaskProcessor>(task);
     }
-    router.route().set(asyncgi::http::ResponseStatus::Code_404_Not_Found, "Page not found");
+    router.route().set(asyncgi::http::ResponseStatus::_404_Not_Found, "Page not found");
 
-    auto server = app->makeServer(router);
+    auto server = asyncgi::Server{io, router};
     std::visit(
             sfun::overloaded{
                     [&](const TcpHost& host)
                     {
-                        server->listen(host.ipAddress, host.port);
+                        server.listen(host.ipAddress, host.port);
                     },
                     [&](const UnixDomainHost& host)
                     {
-                        server->listen(host.path);
+                        server.listen(host.path);
                     }},
             commandLine.fcgiAddress);
 
     spdlog::info("stone_skipper has started");
-    app->exec();
+    io.run();
     spdlog::info("stone_skipper has stopped");
     return 0;
 }

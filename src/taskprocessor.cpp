@@ -12,49 +12,44 @@
 
 namespace stone_skipper {
 
-template<TaskLaunchMode taskLaunchMode>
-TaskProcessor<taskLaunchMode>::TaskProcessor(Task task)
+TaskProcessor::TaskProcessor(Task task)
     : task_{std::move(task)}
 {
 }
 
 namespace {
 
-void processDetachedTaskLaunch(const ProcessCfg& taskProcess, asyncgi::Response& response)
+auto makeProcessHandler(const ProcessCfg& taskProcess, asyncgi::Response& response, const asyncgi::TaskContext& ctx)
 {
-    if (!launchProcessDetached(taskProcess)) {
-        const auto errorMessage =
-                fmt::format("Couldn't find the executable of the command '{}' to launch it", taskProcess.command);
-        spdlog::error(errorMessage);
-        response.send(asyncgi::http::ResponseStatus::Code_424_Failed_Dependency, errorMessage);
-        return;
-    }
-    const auto infoMessage = fmt::format(
-            "The command '{}' was launched and detached. The state of the command is unknown.",
-            taskProcess.command);
-    spdlog::info(infoMessage);
-    response.send(asyncgi::http::ResponseStatus::Code_200_Ok, infoMessage);
+    return [taskProcess, response, ctx](const ProcessResult& result) mutable
+    {
+        if (result.exitCode == 0) {
+            spdlog::info("The command '{}' was completed succesfully", taskProcess.command);
+            response.send(asyncgi::http::ResponseStatus::_200_Ok, result.output);
+        }
+        else {
+            spdlog::info("The command '{}' exited with an error code {}", taskProcess.command, result.exitCode);
+            response.send(asyncgi::http::ResponseStatus::_200_Ok, result.output + "\n" + result.errorOutput);
+        }
+    };
 }
 
 void processTaskLaunch(const ProcessCfg& taskProcess, asyncgi::Response& response)
 {
     spdlog::info("Launching the command '{}'", taskProcess.command);
-    const auto result = launchProcess(taskProcess);
-    if (!result.has_value()) {
-        const auto errorMessage =
-                fmt::format("Couldn't find the executable of the command '{}' to launch it", taskProcess.command);
-        spdlog::error(errorMessage);
-        response.send(asyncgi::http::ResponseStatus::Code_424_Failed_Dependency, errorMessage);
-        return;
-    }
-    if (result.value().exitCode == 0) {
-        spdlog::info("The command '{}' was completed succesfully", taskProcess.command);
-        response.send(asyncgi::http::ResponseStatus::Code_200_Ok, result.value().output);
-    }
-    else {
-        spdlog::info("The command '{}' exited with an error code {}", taskProcess.command, result.value().exitCode);
-        response.send(asyncgi::http::ResponseStatus::Code_200_Ok, result.value().output);
-    }
+
+    auto disp = asyncgi::AsioDispatcher{response};
+    disp.postTask(
+            [taskProcess, response](const asyncgi::TaskContext& ctx) mutable
+            {
+                try {
+                    launchProcess(ctx.io(), taskProcess, makeProcessHandler(taskProcess, response, ctx));
+                }
+                catch (const std::runtime_error& err) {
+                    spdlog::error("{}", err.what());
+                    response.send(asyncgi::http::ResponseStatus::_424_Failed_Dependency, std::string{err.what()});
+                }
+            });
 }
 
 std::optional<std::string> paramFromRoute(
@@ -62,11 +57,11 @@ std::optional<std::string> paramFromRoute(
         const std::vector<std::string>& regexRouteParams,
         asyncgi::RouteParameters<> routeParams)
 {
-    const auto it = std::find(regexRouteParams.begin(), regexRouteParams.end(), commandParamName);
+    const auto it = std::ranges::find(regexRouteParams, commandParamName);
     if (it == regexRouteParams.end())
         return std::nullopt;
     const auto routeParamIndex = std::distance(regexRouteParams.begin(), it);
-    sfunContractCheck(routeParamIndex < sfun::ssize(routeParams.value));
+    sfun_contract_check(routeParamIndex < std::ssize(routeParams.value));
     return routeParams.value.at(routeParamIndex);
 }
 
@@ -77,11 +72,27 @@ std::optional<std::string> paramFromQueries(const std::string& commandParamName,
     return std::string{request.query(commandParamName)};
 }
 
-struct ProcessCfgParametrizationError {
-    std::string missingParam;
+class ProcessCfgParametrizationError : public std::runtime_error {
+public:
+    ProcessCfgParametrizationError(std::string param)
+        : std::runtime_error{"ProcessCfgParametrizationError"}
+        , param_{std::move(param)}
+    {
+    }
+
+    std::string message(std::string_view command) const
+    {
+        return fmt::format(
+                "Couldn't launch the command '{}'. Request doesn't contain a parameter '{}'",
+                command,
+                param_);
+    }
+
+private:
+    std::string param_;
 };
 
-std::variant<ProcessCfg, ProcessCfgParametrizationError> makeProcessCfg(
+ProcessCfg makeProcessCfg(
         const ProcessCfg& templateProcessCfg,
         const std::vector<std::string>& regexRouteParams,
         const asyncgi::RouteParameters<>& routeParams,
@@ -94,40 +105,26 @@ std::variant<ProcessCfg, ProcessCfgParametrizationError> makeProcessCfg(
         else if (auto queryParam = paramFromQueries(commandParam, request))
             processCfg.command = sfun::replace(processCfg.command, "{{" + commandParam + "}}", queryParam.value());
         else
-            return ProcessCfgParametrizationError{commandParam};
+            throw ProcessCfgParametrizationError{commandParam};
     }
     return processCfg;
 }
 } //namespace
 
-template<TaskLaunchMode taskLaunchMode>
-void TaskProcessor<taskLaunchMode>::operator()(
+void TaskProcessor::operator()(
         const asyncgi::RouteParameters<>& routeParams,
         const asyncgi::Request& request,
         asyncgi::Response& response) const
 {
-    const auto taskProcessResult = makeProcessCfg(task_.process, task_.routeParams, routeParams, request);
-    auto taskProcessResultVisitor = sfun::overloaded{
-            [&](const ProcessCfgParametrizationError& error)
-            {
-                const auto errorMessage = fmt::format(
-                        "Couldn't launch the command '{}'. Request doesn't contain a parameter '{}'",
-                        task_.process.command,
-                        error.missingParam);
-                spdlog::error(errorMessage);
-                response.send(asyncgi::http::ResponseStatus::Code_422_Unprocessable_Entity, errorMessage);
-            },
-            [&](const ProcessCfg& taskProcess)
-            {
-                if constexpr (taskLaunchMode == TaskLaunchMode::Detached)
-                    processDetachedTaskLaunch(taskProcess, response);
-                else
-                    processTaskLaunch(taskProcess, response);
-            }};
-    std::visit(taskProcessResultVisitor, taskProcessResult);
+    try {
+        const auto taskProcess = makeProcessCfg(task_.process, task_.routeParams, routeParams, request);
+        processTaskLaunch(taskProcess, response);
+    }
+    catch (const ProcessCfgParametrizationError& error) {
+        const auto errorMessage = error.message(task_.process.command);
+        spdlog::error(errorMessage);
+        response.send(asyncgi::http::ResponseStatus::_422_Unprocessable_Entity, errorMessage);
+    }
 }
-
-template struct TaskProcessor<TaskLaunchMode::Detached>;
-template struct TaskProcessor<TaskLaunchMode::WaitingForResult>;
 
 } //namespace stone_skipper

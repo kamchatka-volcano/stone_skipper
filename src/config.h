@@ -1,6 +1,5 @@
 #pragma once
 #include "path_utils.h"
-#include "paths.h"
 #include <figcone/config.h>
 #include <sfun/string_utils.h>
 #include <filesystem>
@@ -14,14 +13,14 @@ inline std::string defaultShellCommand()
 #ifdef _WIN32
     return "cmd.exe /c";
 #else
-    return "sh -c -e";
+    return "bash -ceo pipefail";
 #endif
 }
 
 struct StartsWithSlash {
     void operator()(const std::string& str)
     {
-        if (!sfun::startsWith(str, "/"))
+        if (!sfun::starts_with(str, "/"))
             throw figcone::ValidationError{"must start with '/'"};
     }
 };

@@ -1,8 +1,13 @@
 #pragma once
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
+
+namespace boost::asio {
+class io_context;
+}
 
 namespace stone_skipper {
 
@@ -16,9 +21,13 @@ struct ProcessCfg {
 struct ProcessResult {
     int exitCode;
     std::string output;
+    std::string errorOutput;
 };
 
-std::optional<ProcessResult> launchProcess(const ProcessCfg&);
-bool launchProcessDetached(const ProcessCfg&);
+void launchProcess(
+        boost::asio::io_context&,
+        const ProcessCfg&,
+        std::function<void(const ProcessResult&)> resultHandler);
+void launchProcessDetached(const ProcessCfg&);
 
 } //namespace stone_skipper
