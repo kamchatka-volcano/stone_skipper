@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 project(stone_skipper VERSION 1.0.0)
 
-find_package(Boost 1.67 REQUIRED COMPONENTS filesystem)
+find_package(Boost 1.78 REQUIRED COMPONENTS system filesystem)
 include(GNUInstallDirs)
 include(external/seal_lake)
 
@@ -35,7 +35,7 @@ SealLake_Import(spdlog 1.11.0
         GIT_TAG v1.11.0
 )
 
-SealLake_Import(gsl 4.0.0
+SealLake_Import(GSL 4.0.0
         GIT_REPOSITORY https://github.com/microsoft/GSL.git
         GIT_TAG        v4.0.0
 )

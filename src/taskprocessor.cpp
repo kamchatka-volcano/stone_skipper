@@ -117,11 +117,11 @@ void TaskProcessor::operator()(
         asyncgi::Response& response) const
 {
     try {
-        const auto taskProcess = makeProcessCfg(task_.process, task_.routeParams, routeParams, request);
+        const auto taskProcess = makeProcessCfg(task_.get().process, task_.get().routeParams, routeParams, request);
         processTaskLaunch(taskProcess, response);
     }
     catch (const ProcessCfgParametrizationError& error) {
-        const auto errorMessage = error.message(task_.process.command);
+        const auto errorMessage = error.message(task_.get().process.command);
         spdlog::error(errorMessage);
         response.send(asyncgi::http::ResponseStatus::_422_Unprocessable_Entity, errorMessage);
     }

@@ -1,0 +1,16 @@
+-Launch detached: ../../build/stone_skipper -fcgiAddress=${{ fcgiAddress }} -config=../${{ config }}
+-Wait: 1 sec
+
+-Expect response from "/greet/world":
+Hello world
+---
+
+-Expect response from "/greet/moon":
+Hello moon
+---
+
+-Expect response from "/process_greet/sun":
+Hello sun
+---
+
+-Expect status from "/foo": 404

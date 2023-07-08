@@ -1,0 +1,11 @@
+shell = bash -ceo pipefail
+#tasks:
+###
+  route = /greet/{{name}}
+  command = echo "Hello {{name}}"
+###
+  route = /process_greet/{{name}}
+  process = bash -c 'echo "Hello {{name}}"'
+###
+  route = /delayed_greet/{{name}}
+  command = sleep 2 && echo "Hello {{name}}"

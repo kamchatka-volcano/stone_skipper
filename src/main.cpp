@@ -17,7 +17,8 @@ int mainApp(const CommandLine& commandLine)
     using namespace asyncgi::http;
 
     auto configReader = figcone::ConfigReader{};
-    auto config = configReader.readShoalFile<Config>(std::filesystem::canonical(commandLine.config));
+
+    auto config = configReader.readShoalFile<Config>(std::filesystem::weakly_canonical(commandLine.config));
     auto io = [&]
     {
         if (commandLine.threads.has_value()) {
@@ -59,5 +60,11 @@ int mainApp(const CommandLine& commandLine)
 int main(int argc, char** argv)
 {
     auto cmdLineReader = cmdlime::CommandLineReader<cmdlime::Format::Simple>{"stone_skipper", "v1.0.0"};
-    return cmdLineReader.exec<CommandLine>(argc, argv, mainApp);
+    try {
+        return cmdLineReader.exec<CommandLine>(argc, argv, mainApp);
+    }
+    catch (const std::runtime_error& e) {
+        std::cerr << e.what();
+        return 1;
+    }
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "task.h"
 #include <asyncgi/asyncgi.h>
+#include <sfun/member.h>
 #include <utility>
 
 namespace stone_skipper {
@@ -11,7 +12,7 @@ struct TaskProcessor {
     void operator()(const asyncgi::RouteParameters<>&, const asyncgi::Request&, asyncgi::Response&) const;
 
 private:
-    Task task_;
+    sfun::member<const Task> task_;
 };
 
 } //namespace stone_skipper
