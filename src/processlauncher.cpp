@@ -34,56 +34,103 @@ auto osArgs(const std::vector<std::string>& args)
 #endif
 }
 
-struct ProcessHandler : boost::process::extend::async_handler {
-    ProcessHandler(
-            std::shared_ptr<std::future<std::string>> stdOut,
-            std::shared_ptr<std::future<std::string>> stdErr,
-            std::function<void(const ProcessResult&)> resultHandler)
-        : stdOut_{std::move(stdOut)}
-        , stdErr_{std::move(stdErr)}
-        , resultHandler_{std::move(resultHandler)}
-    {
-    }
-
-    template<typename ExecutorType>
-    std::function<void(int, std::error_code const&)> on_exit_handler(ExecutorType&)
-    {
-        return [out = std::move(stdOut_),
-                err = std::move(stdErr_),
-                resultHandler = std::move(resultHandler_)](int exitCode, std::error_code const& ec)
-        {
-            if (ec) {
-                resultHandler({.exitCode = exitCode, .output = ec.message(), .errorOutput = ""});
-                return;
-            }
-            resultHandler({.exitCode = exitCode, .output = out->get(), .errorOutput = err->get()});
-        };
-    }
-    std::shared_ptr<std::future<std::string>> stdOut_;
-    std::shared_ptr<std::future<std::string>> stdErr_;
-    std::function<void(const ProcessResult&)> resultHandler_;
-};
-
-void startProcess(
-        boost::asio::io_context& io,
-        const boost::filesystem::path& cmd,
-        const std::vector<std::string>& cmdArgs,
-        const boost::filesystem::path& workingDir,
-        std::function<void(const ProcessResult&)> resultHandler)
+std::string readBuffer(boost::asio::streambuf& streambuf, sfun::ssize_t size)
 {
-    auto stdoutData = std::make_shared<std::future<std::string>>();
-    auto stderrData = std::make_shared<std::future<std::string>>();
-    auto processHandler = ProcessHandler{stdoutData, stderrData, std::move(resultHandler)};
-    auto process = proc::child{
-            cmd,
-            proc::args(osArgs(cmdArgs)),
-            proc::start_dir = workingDir,
-            proc::std_out > (*stdoutData),
-            proc::std_err > (*stderrData),
-            std::move(processHandler),
-            io};
-    process.detach();
+    return {buffers_begin(streambuf.data()), buffers_begin(streambuf.data()) + size};
 }
+
+class Process : public std::enable_shared_from_this<Process> {
+public:
+    static void launch(
+            boost::asio::io_context& io,
+            const boost::filesystem::path& cmd,
+            const std::vector<std::string>& cmdArgs,
+            const boost::filesystem::path& workingDir,
+            const std::function<void(const ProcessResult&)>& resultHandler)
+    {
+        auto process =std::shared_ptr<Process>{new Process{io}};
+        process->launch(cmd, cmdArgs, workingDir, resultHandler);
+    }
+
+private:
+    explicit Process(boost::asio::io_context& io)
+        : io_{io}
+        , stdOutPipe_{io}
+        , stdErrPipe_{io}
+    {
+    }
+
+    void launch(
+            const boost::filesystem::path& cmd,
+            const std::vector<std::string>& cmdArgs,
+            const boost::filesystem::path& workingDir,
+            const std::function<void(const ProcessResult&)>& resultHandler)
+    {
+        proc::async_system(
+                io_,
+                [self = shared_from_this(), resultHandler](const boost::system::error_code& ec, int exitCode)
+                {
+                    self->onExit(ec, exitCode, resultHandler);
+                },
+                cmd,
+                proc::args(osArgs(cmdArgs)),
+                proc::start_dir = workingDir,
+                proc::std_out > stdOutPipe_,
+                proc::std_err > stdErrPipe_);
+
+        readOutput<&Process::stdOut_, &Process::stdOutBuffer_, &Process::stdOutPipe_>();
+        readOutput<&Process::stdErr_, &Process::stdErrBuffer_, &Process::stdErrPipe_>();
+    }
+
+    void onExit(const std::error_code& ec, int exitCode, const std::function<void(const ProcessResult&)>& resultHandler)
+    {
+        if (ec) {
+            resultHandler({.exitCode = exitCode, .output = stdOut_ + "\n" + ec.message(), .errorOutput = stdErr_});
+            return;
+        }
+        resultHandler({.exitCode = exitCode, .output = stdOut_, .errorOutput = stdErr_});
+    }
+
+    template<auto outputStringPtr, auto outputBufferPtr, auto outputPipePtr>
+    void readOutput()
+    {
+        auto& outBuffer = this->*outputBufferPtr;
+        auto& outPipe = this->*outputPipePtr;
+
+        boost::asio::async_read_until(
+                outPipe,
+                outBuffer,
+                '\n',
+                [self = shared_from_this()](const boost::system::error_code& ec, std::size_t bytesTransferred)
+                {
+                    self->readOutput<outputStringPtr, outputBufferPtr, outputPipePtr>(ec, bytesTransferred);
+                });
+    }
+
+    template<auto outputStringPtr, auto outputBufferPtr, auto outputPipePtr>
+    void readOutput(const boost::system::error_code& ec, std::size_t bytesTransferred)
+    {
+        auto& outString = this->*outputStringPtr;
+        auto& outBuffer = this->*outputBufferPtr;
+        if (!ec) {
+            outString += readBuffer(outBuffer, bytesTransferred);
+            outBuffer.consume(bytesTransferred);
+            readOutput<outputStringPtr, outputBufferPtr, outputPipePtr>();
+        }
+        else if (ec == boost::asio::error::eof) {
+            outString += readBuffer(outBuffer, std::ssize(outBuffer));
+            outBuffer.consume(std::ssize(outBuffer));
+        }
+    }
+
+    boost::asio::io_context& io_;
+    boost::process::async_pipe stdOutPipe_;
+    boost::process::async_pipe stdErrPipe_;
+    boost::asio::streambuf stdOutBuffer_;
+    boost::asio::streambuf stdErrBuffer_;
+    std::string stdOut_;
+    std::string stdErr_;
+};
 
 std::tuple<std::string, std::vector<std::string>> parseShellCommand(
         const std::string& shellCommand,
@@ -123,7 +170,7 @@ std::tuple<std::string, std::vector<std::string>> parseCommand(const std::string
 void launchProcess(
         boost::asio::io_context& io,
         const ProcessCfg& processCfg,
-        std::function<void(const ProcessResult&)> resultHandler)
+        const std::function<void(const ProcessResult&)>& resultHandler)
 {
     const auto [cmdName, cmdArgs] = processCfg.shellCommand.has_value()
             ? parseShellCommand(processCfg.shellCommand.value(), processCfg.command)
@@ -139,7 +186,7 @@ void launchProcess(
     if (cmd.empty())
         throw Error{fmt::format("Couldn't find the executable of the command '{}'", cmdName)};
 
-    startProcess(io, cmd, cmdArgs, workingDir, resultHandler);
+    Process::launch(io, cmd, cmdArgs, workingDir, resultHandler);
 }
 
 } //namespace stone_skipper

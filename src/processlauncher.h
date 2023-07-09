@@ -27,7 +27,7 @@ struct ProcessResult {
 void launchProcess(
         boost::asio::io_context&,
         const ProcessCfg&,
-        std::function<void(const ProcessResult&)> resultHandler);
+        const std::function<void(const ProcessResult&)>& resultHandler);
 void launchProcessDetached(const ProcessCfg&);
 
 } //namespace stone_skipper
