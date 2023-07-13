@@ -1,4 +1,4 @@
--Launch detached: ../../build/stone_skipper -fcgiAddress=${{ fcgiAddress }} -config=../${{ config }}
+-Launch detached: ../../build/stone_skipper -fcgiAddress=${{ fcgiAddress }} -config="../config.shoal" ${{ shellParam }}
 -Wait: 1 sec
 
 -Launch detached: curl --silent http://localhost:8088/delayed_greet/moon | awk '{$1=$1};NF' | grep "\S" | head -c -1 > output.res

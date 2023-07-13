@@ -8,15 +8,6 @@
 
 namespace stone_skipper {
 
-inline std::string defaultShellCommand()
-{
-#ifdef _WIN32
-    return "cmd.exe /c";
-#else
-    return "bash -ceo pipefail";
-#endif
-}
-
 struct StartsWithSlash {
     void operator()(const std::string& str)
     {
@@ -52,7 +43,6 @@ struct TaskConfig : figcone::Config {
 };
 
 struct Config : figcone::Config {
-    FIGCONE_PARAM(shell, std::string)(defaultShellCommand());
     FIGCONE_NODELIST(tasks, std::vector<TaskConfig>).ensure<AllTasksAreValid>();
 };
 } //namespace stone_skipper

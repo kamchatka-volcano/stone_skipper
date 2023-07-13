@@ -1,8 +1,11 @@
 #pragma once
 #include "path_utils.h"
 #include <cmdlime/config.h>
+#include <sfun/path.h>
 #include <sfun/string_utils.h>
+#include <spdlog/spdlog.h>
 #include <filesystem>
+#include <fstream>
 #include <string>
 
 namespace stone_skipper {
@@ -17,16 +20,32 @@ struct UnixDomainHost {
 
 using FcgiHost = std::variant<TcpHost, UnixDomainHost>;
 
+const auto defaultConfigPath = configPath() / "stone_skipper/stone_skipper.cfg";
+
+inline std::string defaultShellCommand()
+{
+#ifdef _WIN32
+    return "cmd.exe /c";
+#else
+    return "bash -ceo pipefail";
+#endif
+}
+
+
+// clang-format off
 struct CommandLine : cmdlime::Config {
-    CMDLIME_PARAM(log, cmdlime::optional<std::filesystem::path>);
-    CMDLIME_PARAM(config, std::filesystem::path)(configPath() / "stone_skipper/stone_skipper.cfg");
-    CMDLIME_PARAM(fcgiAddress, FcgiHost);
-    CMDLIME_PARAM(threads, std::optional<int>) << [](std::optional<int> value)
-    {
-        if (value && *value <= 0)
-            throw cmdlime::ValidationError{"threads number must be positive"};
-    };
+    CMDLIME_PARAM(log, cmdlime::optional<std::filesystem::path>)    << "log file path";
+    CMDLIME_PARAM(config, std::filesystem::path)(defaultConfigPath) << "config file path";
+    CMDLIME_PARAM(fcgiAddress, FcgiHost)                            << "socket for FastCGI connection (either a file path, or 'ipAddress:port' string)";
+    CMDLIME_PARAM(shell, std::string)(defaultShellCommand())        << "shell command";
+    CMDLIME_PARAM(threads, int)(1)                                  << "number of threads"
+        << [](std::optional<int> value)
+        {
+            if (value && *value <= 0)
+                throw cmdlime::ValidationError{"threads number must be positive"};
+        };
 };
+// clang-format on
 
 } //namespace stone_skipper
 

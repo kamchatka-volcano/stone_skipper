@@ -1,4 +1,4 @@
--Launch detached: ../../build/stone_skipper -fcgiAddress=${{ fcgiAddress }} -config=../${{ config }}
+-Launch detached: ../../build/stone_skipper -fcgiAddress=${{ fcgiAddress }} -config="../config.shoal" ${{ shellParam }}
 -Wait: 1 sec
 
 -Expect response from "/greet/world":

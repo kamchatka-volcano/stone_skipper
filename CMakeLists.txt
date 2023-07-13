@@ -11,18 +11,18 @@ SealLake_Import(sfun 4.0.1
 )
 
 set(ASYNCGI_USE_BOOST_ASIO ON)
-SealLake_Import(asyncgi 0.1.0
+SealLake_Import(asyncgi 0.2.0
         GIT_REPOSITORY https://github.com/kamchatka-volcano/asyncgi
-        GIT_TAG dev
+        GIT_TAG v0.2.0
 )
-SealLake_Import(cmdlime 2.4.1
+SealLake_Import(cmdlime 2.5.0
         GIT_REPOSITORY https://github.com/kamchatka-volcano/cmdlime
-        GIT_TAG v2.4.1
+        GIT_TAG v2.5.0
 )
 set(FIGCONE_USE_SHOAL ON)
-SealLake_Import(figcone 2.4.7
+SealLake_Import(figcone 2.4.8
         GIT_REPOSITORY https://github.com/kamchatka-volcano/figcone
-        GIT_TAG v2.4.7
+        GIT_TAG v2.4.9
 )
 
 SealLake_Import(fmt 9.1.0
@@ -39,6 +39,7 @@ SealLake_Import(GSL 4.0.0
         GIT_REPOSITORY https://github.com/microsoft/GSL.git
         GIT_TAG        v4.0.0
 )
+
 SealLake_Import(platform_folders 4.2.0
         GIT_REPOSITORY https://github.com/sago007/PlatformFolders.git
         GIT_TAG        4.2.0
