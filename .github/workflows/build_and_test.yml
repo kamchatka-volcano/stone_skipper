@@ -143,7 +143,7 @@ jobs:
       - name: Launch tests
         uses: BerniWittmann/background-server-action@v1
         with:
-          command: lunchtoast/lunchtoast functional_tests ${{ matrix.config.shell_command }} -collectFailedTests=failed_tests -config=${{ matrix.config.lunchtoast_cfg }}
+          command: sleep 2 && lunchtoast/lunchtoast functional_tests ${{ matrix.config.shell_command }} -collectFailedTests=failed_tests -config=${{ matrix.config.lunchtoast_cfg }}
           start: ${{ matrix.config.nginx_exec }} -c '${{github.workspace}}'/functional_tests/${{ matrix.config.nginx_cfg }}
 
       - name: Upload failed tests

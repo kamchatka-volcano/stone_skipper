@@ -74,5 +74,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            build/stone-skipper.exe
-            build/stone-skipper
+            build/stone_skipper.exe
+            build/stone_skipper
