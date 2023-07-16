@@ -48,27 +48,32 @@ The configuration file is written in [shoal](shoal.eelnet.org) format:
   route = /greet/{{name}}
   command = echo "Hello {{name}}"
 ###
-  route = /shutdown
-  process = off.bat
+  route = /farewell/
+  process = farewell.sh --name {{name}}
 ```
 
 `tasks` is a list of process launching tasks, where each task consists of a `route` parameter that specifies the incoming request's path triggering the action, and either a `command` or `process` parameter that specifies the command to launch. When using `command`, the command is executed in the shell, while `process` launches it directly. 
 
 The `route` parameter can define a wildcard parameter that matches one or more characters. The result of a match can be used in the `command` or `process` parameters. For example, with the earlier provided configuration, a request to `/greet/world` would launch the `echo "Hello world"` command.
 
+Request's query parameters can also be used in `command` and `process` parameters. The second task in the example config allows to use request `/farewell/?name=moon` to launch the `farewell.sh --name moon` process. 
+
+Query parameters from the request can also be used in the command and process parameters. In the example configuration, the second task enables the usage of the request `/farewell/?name=moon` to start the `farewell.sh --name moon` process.
+
+
 #### Command line options
 
-|                           |                                                                                |
-|---------------------------|--------------------------------------------------------------------------------| 
-| **Parameters:**           |                                                                                |    
+|                           |                                                                               |
+|---------------------------|-------------------------------------------------------------------------------| 
+| **Parameters:**           |                                                                               |    
 | `-fcgiAddress=<fcgiHost>` | socket for FastCGI connection (either a file path, or 'ipAddress:port' string) |
-| `-log=<path>`             | log file path (optional)                                                       |
-| `-config=<path>`          | config file path (optional)                                                    |
-| `-shell=<string> `        | shell command (optional)                                                       |
-| `-threads=<int> `         | number of threads (optional)                                                   |
-| **Flags:**                |                                                                                | 
-| `--help`                  | show usage info and exit                                                       |
-| `--version`               | show version info eand exit                                                    |
+| `-log=<path>`             | log file path (optional)                                                      |
+| `-config=<path>`          | config file path (optional)                                                   |
+| `-shell=<string> `        | shell command (optional)                                                      |
+| `-threads=<int> `         | number of threads (optional)                                                  |
+| **Flags:**                |                                                                               | 
+| `--help`                  | show usage info and exit                                                      |
+| `--version`               | show version info and exit                                                    |
 
 
 ### Build instructions

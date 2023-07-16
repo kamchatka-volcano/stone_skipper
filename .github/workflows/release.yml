@@ -23,7 +23,7 @@ jobs:
             cxx: "clang++",
             cmake_vars: "-DBoost_USE_STATIC_LIBS=ON -DBoost_USE_STATIC_RUNTIME=ON",
             flags: "-Wall -Werror -Wextra -Wpedantic -Wcast-align -Wnon-virtual-dtor -Woverloaded-virtual -Wunused",
-            artifacts: "build/lunchtoast"
+            artifacts: "build/stone_skipper"
           }
           - {
             name: "Windows Latest MSVC",
@@ -32,7 +32,7 @@ jobs:
             cxx: "cl",
             cmake_vars: "-DCMAKE_GENERATOR_PLATFORM=x64 -DVCPKG_TARGET_TRIPLET=x64-windows-static-md",
             flags: "/EHsc /W4 /WX /wd4702",
-            artifacts: "build/Release/lunchtoast.exe"
+            artifacts: "build/Release/stone_skipper.exe"
           }
     steps:
       - name: Git checkout
