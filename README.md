@@ -3,6 +3,8 @@
   <img height="192" src="doc/logo.jpg"/>
 </p>
 
+[![build & test (clang, gcc, MSVC)](https://github.com/kamchatka-volcano/stone_skipper/actions/workflows/build_and_test.yml/badge.svg?branch=master)](https://github.com/kamchatka-volcano/stone_skipper/actions/workflows/build_and_test.yml)
+
 **stone_skipper** is a process-launching server that runs the commands registered in the configuration file for the corresponding incoming HTTP requests. It works asynchronously and can initiate multiple processes without blocking while waiting for their completion, even when running with a single thread.
 
 ### Usage
