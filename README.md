@@ -56,9 +56,7 @@ The configuration file is written in [shoal](shoal.eelnet.org) format:
 
 The `route` parameter can define a wildcard parameter that matches one or more characters. The result of a match can be used in the `command` or `process` parameters. For example, with the earlier provided configuration, a request to `/greet/world` would launch the `echo "Hello world"` command.
 
-Request's query parameters can also be used in `command` and `process` parameters. The second task in the example config allows to use request `/farewell/?name=moon` to launch the `farewell.sh --name moon` process. 
-
-Query parameters from the request can also be used in the command and process parameters. In the example configuration, the second task enables the usage of the request `/farewell/?name=moon` to start the `farewell.sh --name moon` process.
+Query parameters from the request can also be used in the `command` and `process` parameters. In the example configuration, the second task enables the usage of the request `/farewell/?name=moon` to start the `farewell.sh --name moon` process.
 
 
 #### Command line options
