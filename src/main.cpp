@@ -60,7 +60,7 @@ int mainApp(const CommandLine& commandLine)
 
 int main(int argc, char** argv)
 {
-    auto cmdLineReader = cmdlime::CommandLineReader<cmdlime::Format::Simple>{"stone_skipper", "v1.0.0"};
+    auto cmdLineReader = cmdlime::CommandLineReader<cmdlime::Format::Simple>{"stone_skipper", "v1.1.0"};
     try {
         return cmdLineReader.exec<CommandLine>(argc, argv, mainApp);
     }
