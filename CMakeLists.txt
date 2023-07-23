@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(stone_skipper VERSION 1.0.0)
+project(stone_skipper VERSION 1.1.0)
 
 find_package(Boost 1.78 REQUIRED COMPONENTS system filesystem)
 include(GNUInstallDirs)
