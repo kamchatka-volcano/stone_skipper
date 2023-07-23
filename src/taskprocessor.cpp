@@ -11,8 +11,8 @@
 #include <variant>
 
 namespace stone_skipper {
-
-TaskProcessor::TaskProcessor(Task task)
+template<TaskLaunchMode launchMode>
+TaskProcessor<launchMode>::TaskProcessor(Task task)
     : task_{std::move(task)}
 {
 }
@@ -34,6 +34,19 @@ auto makeProcessHandler(const ProcessCfg& taskProcess, asyncgi::Response& respon
     };
 }
 
+auto makeLogProcessHandler(const ProcessCfg& taskProcess)
+{
+    return [taskProcess](const ProcessResult& result) mutable
+    {
+        if (result.exitCode == 0) {
+            spdlog::info("The command '{}' was completed succesfully", taskProcess.command);
+        }
+        else {
+            spdlog::info("The command '{}' exited with an error code {}", taskProcess.command, result.exitCode);
+        }
+    };
+}
+
 void processTaskLaunch(const ProcessCfg& taskProcess, asyncgi::Response& response)
 {
     spdlog::info("Launching the command '{}'", taskProcess.command);
@@ -44,6 +57,25 @@ void processTaskLaunch(const ProcessCfg& taskProcess, asyncgi::Response& respons
             {
                 try {
                     launchProcess(ctx.io(), taskProcess, makeProcessHandler(taskProcess, response, ctx));
+                }
+                catch (const std::runtime_error& err) {
+                    spdlog::error("{}", err.what());
+                    response.send(asyncgi::http::ResponseStatus::_424_Failed_Dependency, std::string{err.what()});
+                }
+            });
+}
+
+void processTaskLaunchDetached(const ProcessCfg& taskProcess, asyncgi::Response& response)
+{
+    auto disp = asyncgi::AsioDispatcher{response};
+    disp.postTask(
+            [taskProcess, response](const asyncgi::TaskContext& ctx) mutable
+            {
+                try {
+                    launchProcess(ctx.io(), taskProcess, makeLogProcessHandler(taskProcess));
+                    const auto infoMessage = fmt::format("The command '{}' was launched and detached.",taskProcess.command);
+                    spdlog::info(infoMessage);
+                    response.send(infoMessage);
                 }
                 catch (const std::runtime_error& err) {
                     spdlog::error("{}", err.what());
@@ -111,14 +143,18 @@ ProcessCfg makeProcessCfg(
 }
 } //namespace
 
-void TaskProcessor::operator()(
+template<TaskLaunchMode launchMode>
+void TaskProcessor<launchMode>::operator()(
         const asyncgi::RouteParameters<>& routeParams,
         const asyncgi::Request& request,
         asyncgi::Response& response) const
 {
     try {
         const auto taskProcess = makeProcessCfg(task_.get().process, task_.get().routeParams, routeParams, request);
-        processTaskLaunch(taskProcess, response);
+        if constexpr (launchMode == TaskLaunchMode::WaitingForResult)
+            processTaskLaunch(taskProcess, response);
+        else
+            processTaskLaunchDetached(taskProcess, response);
     }
     catch (const ProcessCfgParametrizationError& error) {
         const auto errorMessage = error.message(task_.get().process.command);
@@ -126,5 +162,9 @@ void TaskProcessor::operator()(
         response.send(asyncgi::http::ResponseStatus::_422_Unprocessable_Entity, errorMessage);
     }
 }
+
+template struct TaskProcessor<TaskLaunchMode::Detached>;
+template struct TaskProcessor<TaskLaunchMode::WaitingForResult>;
+
 
 } //namespace stone_skipper

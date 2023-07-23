@@ -32,7 +32,8 @@ int mainApp(const CommandLine& commandLine)
     auto router = asyncgi::Router{};
     for (const auto& taskCfg : config.tasks){
         const auto task = Task{taskCfg, commandLine.shell};
-        router.route(task.routeRegexp, http::RequestMethod::Get).process<TaskProcessor>(task);
+        router.route(task.routeRegexp, http::RequestMethod::Get).process<TaskProcessor<TaskLaunchMode::WaitingForResult>>(task);
+        router.route(task.routeRegexp, http::RequestMethod::Post).process<TaskProcessor<TaskLaunchMode::Detached>>(task);
     }
     router.route().set(http::ResponseStatus::_404_Not_Found, "Unknown task");
     if (config.tasks.empty())
