@@ -7,6 +7,12 @@
 namespace stone_skipper {
 struct Task;
 
+enum class TaskLaunchMode {
+    WaitingForResult,
+    Detached
+};
+
+template<TaskLaunchMode launchMode>
 struct TaskProcessor {
     explicit TaskProcessor(Task);
     void operator()(const asyncgi::RouteParameters<>&, const asyncgi::Request&, asyncgi::Response&) const;
